@@ -120,6 +120,19 @@ class CreatePurchaseOrderRequest(BaseModel):
     expected_delivery_date: str
     notes: Optional[str] = None
 
+class RestockRecommendation(BaseModel):
+    sku: str
+    name: str
+    category: str
+    warehouse: str
+    quantity_on_hand: int
+    reorder_point: int
+    forecasted_demand: Optional[int] = None
+    trend: Optional[str] = None
+    suggested_qty: int
+    unit_cost: float
+    estimated_cost: float
+
 # API endpoints
 @app.get("/")
 def root():
@@ -226,6 +239,69 @@ def get_category_spending():
 def get_recent_transactions():
     """Get recent transactions"""
     return recent_transactions
+
+@app.get("/api/restock", response_model=List[RestockRecommendation])
+def get_restock_recommendations(
+    warehouse: Optional[str] = None,
+    category: Optional[str] = None,
+    budget: Optional[float] = None
+):
+    """Get purchase order recommendations for low-stock items within an optional budget ceiling"""
+    low_stock = [
+        item for item in apply_filters(inventory_items, warehouse, category)
+        if item["quantity_on_hand"] <= item["reorder_point"]
+    ]
+
+    demand_lookup = {f["item_sku"]: f for f in demand_forecasts}
+
+    recommendations = []
+    for item in low_stock:
+        forecast = demand_lookup.get(item["sku"])
+        forecasted_demand = forecast["forecasted_demand"] if forecast else None
+        trend = forecast["trend"] if forecast else None
+
+        if forecasted_demand is not None:
+            suggested_qty = max(forecasted_demand - item["quantity_on_hand"], item["reorder_point"] - item["quantity_on_hand"])
+        else:
+            suggested_qty = item["reorder_point"] * 2 - item["quantity_on_hand"]
+
+        suggested_qty = max(suggested_qty, 1)
+        estimated_cost = round(suggested_qty * item["unit_cost"], 2)
+
+        recommendations.append({
+            "sku": item["sku"],
+            "name": item["name"],
+            "category": item["category"],
+            "warehouse": item["warehouse"],
+            "quantity_on_hand": item["quantity_on_hand"],
+            "reorder_point": item["reorder_point"],
+            "forecasted_demand": forecasted_demand,
+            "trend": trend,
+            "suggested_qty": suggested_qty,
+            "unit_cost": item["unit_cost"],
+            "estimated_cost": estimated_cost,
+        })
+
+    # Sort: increasing trend first, then by depletion ratio (most depleted first)
+    def urgency(r):
+        trend_priority = 0 if r["trend"] == "increasing" else 1
+        depletion = r["quantity_on_hand"] / r["reorder_point"] if r["reorder_point"] > 0 else 1
+        return (trend_priority, depletion)
+
+    recommendations.sort(key=urgency)
+
+    if budget is None:
+        return recommendations
+
+    # Apply budget ceiling greedily
+    result = []
+    remaining = budget
+    for rec in recommendations:
+        if rec["estimated_cost"] <= remaining:
+            result.append(rec)
+            remaining -= rec["estimated_cost"]
+    return result
+
 
 @app.get("/api/reports/quarterly")
 def get_quarterly_reports(
