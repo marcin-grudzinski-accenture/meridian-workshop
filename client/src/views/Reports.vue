@@ -238,6 +238,35 @@ export default {
   padding: 0;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.refresh-btn {
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .card {
   background: white;
   border-radius: 12px;
@@ -321,13 +350,12 @@ export default {
 }
 
 .bar-label {
-  margin-top: 0.5rem;
+  margin-top: 1.5rem;
   font-size: 0.75rem;
-  color: #64748b;
+  color: #475569;
   text-align: center;
   transform: rotate(-45deg);
   white-space: nowrap;
-  margin-top: 1.5rem;
 }
 
 .stats-grid {
