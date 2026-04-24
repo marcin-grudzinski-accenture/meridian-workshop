@@ -83,7 +83,7 @@
                     <span v-else>—</span>
                   </td>
                   <td><strong>{{ rec.suggested_qty }}</strong></td>
-                  <td>${{ rec.unit_cost.toFixed(2) }}</td>
+                  <td>${{ (rec.unit_cost ?? 0).toFixed(2) }}</td>
                   <td><strong>${{ formatNumber(rec.estimated_cost) }}</strong></td>
                 </tr>
               </tbody>
@@ -116,6 +116,7 @@ export default {
     const { selectedLocation, selectedCategory, getCurrentFilters } = useFilters()
 
     const budgetInput = ref('')
+    const submittedBudget = ref(null)
     const recommendations = ref([])
     const loading = ref(false)
     const error = ref(null)
@@ -124,10 +125,9 @@ export default {
     const totalCost = computed(() =>
       recommendations.value.reduce((sum, r) => sum + r.estimated_cost, 0)
     )
-    const budgetRemaining = computed(() => {
-      const b = parseFloat(budgetInput.value)
-      return Number.isFinite(b) ? b - totalCost.value : null
-    })
+    const budgetRemaining = computed(() =>
+      submittedBudget.value === null ? null : submittedBudget.value - totalCost.value
+    )
 
     const loadRecommendations = async () => {
       try {
@@ -135,7 +135,12 @@ export default {
         error.value = null
         const filters = getCurrentFilters()
         const b = parseFloat(budgetInput.value)
-        if (Number.isFinite(b) && b > 0) filters.budget = b
+        if (Number.isFinite(b) && b > 0) {
+          filters.budget = b
+          submittedBudget.value = b
+        } else {
+          submittedBudget.value = null
+        }
         recommendations.value = await api.getRestockRecommendations(filters)
         hasLoaded.value = true
       } catch (err) {
@@ -150,7 +155,7 @@ export default {
     })
 
     const formatNumber = (num) =>
-      (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      (Number.isFinite(num) ? num : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
     const trendClass = (trend) => {
       if (trend === 'increasing') return 'trend-increasing'

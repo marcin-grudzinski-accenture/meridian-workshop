@@ -14,6 +14,8 @@ QUARTER_MAP = {
     'Q4-2025': ['2025-10', '2025-11', '2025-12']
 }
 
+MONTH_TO_QUARTER = {m: q for q, months in QUARTER_MAP.items() for m in months}
+
 def filter_by_month(items: list, month: Optional[str]) -> list:
     """Filter items by month/quarter based on order_date field"""
     if not month or month == 'all':
@@ -240,6 +242,12 @@ def get_recent_transactions():
     """Get recent transactions"""
     return recent_transactions
 
+def _urgency(r: dict) -> tuple:
+    trend_priority = 0 if r["trend"] == "increasing" else 1
+    depletion = r["quantity_on_hand"] / r["reorder_point"] if r["reorder_point"] > 0 else float('inf')
+    return (trend_priority, depletion)
+
+
 @app.get("/api/restock", response_model=List[RestockRecommendation])
 def get_restock_recommendations(
     warehouse: Optional[str] = None,
@@ -261,7 +269,8 @@ def get_restock_recommendations(
         trend = forecast["trend"] if forecast else None
 
         if forecasted_demand is not None:
-            suggested_qty = max(forecasted_demand - item["quantity_on_hand"], item["reorder_point"] - item["quantity_on_hand"])
+            target = max(forecasted_demand, item["reorder_point"] * 2)
+            suggested_qty = target - item["quantity_on_hand"]
         else:
             suggested_qty = item["reorder_point"] * 2 - item["quantity_on_hand"]
 
@@ -282,13 +291,7 @@ def get_restock_recommendations(
             "estimated_cost": estimated_cost,
         })
 
-    # Sort: increasing trend first, then by depletion ratio (most depleted first)
-    def urgency(r):
-        trend_priority = 0 if r["trend"] == "increasing" else 1
-        depletion = r["quantity_on_hand"] / r["reorder_point"] if r["reorder_point"] > 0 else 1
-        return (trend_priority, depletion)
-
-    recommendations.sort(key=urgency)
+    recommendations.sort(key=_urgency)
 
     if budget is None:
         return recommendations
@@ -320,15 +323,8 @@ def get_quarterly_reports(
     for order in filtered:
         order_date = order.get('order_date', '')
         # Determine quarter
-        if '2025-01' in order_date or '2025-02' in order_date or '2025-03' in order_date:
-            quarter = 'Q1-2025'
-        elif '2025-04' in order_date or '2025-05' in order_date or '2025-06' in order_date:
-            quarter = 'Q2-2025'
-        elif '2025-07' in order_date or '2025-08' in order_date or '2025-09' in order_date:
-            quarter = 'Q3-2025'
-        elif '2025-10' in order_date or '2025-11' in order_date or '2025-12' in order_date:
-            quarter = 'Q4-2025'
-        else:
+        quarter = MONTH_TO_QUARTER.get(order_date[:7])
+        if not quarter:
             continue
 
         if quarter not in quarters:
@@ -375,21 +371,20 @@ def get_monthly_trends(
         if not order_date:
             continue
 
-        # Extract month (format: YYYY-MM-DD)
-        month = order_date[:7]  # Gets YYYY-MM
+        month_key = order_date[:7]
 
-        if month not in months:
-            months[month] = {
-                'month': month,
+        if month_key not in months:
+            months[month_key] = {
+                'month': month_key,
                 'order_count': 0,
                 'revenue': 0,
                 'delivered_count': 0
             }
 
-        months[month]['order_count'] += 1
-        months[month]['revenue'] += order.get('total_value', 0)
+        months[month_key]['order_count'] += 1
+        months[month_key]['revenue'] += order.get('total_value', 0)
         if order.get('status') == 'Delivered':
-            months[month]['delivered_count'] += 1
+            months[month_key]['delivered_count'] += 1
 
     # Convert to list and sort
     result = list(months.values())

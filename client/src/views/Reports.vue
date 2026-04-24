@@ -30,7 +30,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(q, index) in quarterlyData" :key="index">
+              <tr v-for="q in quarterlyData" :key="q.quarter">
                 <td><strong>{{ q.quarter }}</strong></td>
                 <td>{{ q.total_orders }}</td>
                 <td>${{ formatNumber(q.total_revenue) }}</td>
@@ -53,7 +53,7 @@
         </div>
         <div class="chart-container">
           <div class="bar-chart">
-            <div v-for="(month, index) in monthlyData" :key="index" class="bar-wrapper">
+            <div v-for="month in monthlyData" :key="month.month" class="bar-wrapper">
               <div class="bar-container">
                 <div
                   class="bar"
@@ -84,7 +84,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="(month, index) in monthlyData" :key="index">
+              <tr v-for="month in monthlyData" :key="month.month">
                 <td><strong>{{ formatMonth(month.month) }}</strong></td>
                 <td>{{ month.order_count }}</td>
                 <td>${{ formatNumber(month.revenue) }}</td>
@@ -180,20 +180,22 @@ export default {
 
     onMounted(loadData)
 
-    const formatNumber = (num) => {
-      return (num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    }
+    const formatNumber = (num) =>
+      (Number.isFinite(num) ? num : 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
     const formatMonth = (monthStr) => {
+      if (!monthStr || !monthStr.includes('-')) return monthStr ?? '—'
       const [year, month] = monthStr.split('-')
       const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-      return names[Number.parseInt(month) - 1] + ' ' + year
+      return (names[Number.parseInt(month, 10) - 1] ?? monthStr) + ' ' + year
     }
 
-    const getBarHeight = (revenue) => {
-      const max = Math.max(...monthlyData.value.map(m => m.revenue), 0)
-      return max === 0 ? 0 : (revenue / max) * 200
-    }
+    const maxRevenue = computed(() =>
+      Math.max(...monthlyData.value.map(m => m.revenue), 0)
+    )
+
+    const getBarHeight = (revenue) =>
+      maxRevenue.value === 0 ? 0 : (revenue / maxRevenue.value) * 200
 
     const getFulfillmentClass = (rate) => {
       if (rate >= 90) return 'badge success'
