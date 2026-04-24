@@ -6,6 +6,8 @@ export default {
     orders: 'Orders',
     finance: 'Finance',
     demandForecast: 'Demand Forecast',
+    reports: 'Reports',
+    restocking: 'Restocking',
     companyName: 'Catalyst Components',
     subtitle: 'Inventory Management System'
   },
@@ -185,6 +187,63 @@ export default {
       change: 'Change',
       trend: 'Trend',
       period: 'Period'
+    }
+  },
+
+  // Restocking
+  restock: {
+    title: 'Restocking Recommendations',
+    description: 'Enter a budget ceiling to see ranked purchase order recommendations',
+    budgetLabel: 'Budget Ceiling (USD)',
+    budgetPlaceholder: 'e.g. 50000',
+    getRecommendations: 'Get Recommendations',
+    totalItems: 'Items recommended',
+    totalCost: 'Total estimated cost',
+    budgetRemaining: 'Budget remaining',
+    table: {
+      sku: 'SKU',
+      name: 'Item Name',
+      warehouse: 'Warehouse',
+      stock: 'Stock / Reorder',
+      forecastedDemand: 'Forecasted Demand',
+      trend: 'Trend',
+      suggestedQty: 'Suggested Qty',
+      unitCost: 'Unit Cost',
+      estimatedCost: 'Estimated Cost'
+    },
+    empty: 'All stocked items meet or exceed reorder points — no restocking needed.',
+    noBudget: 'Enter a budget ceiling above and click Get Recommendations.'
+  },
+
+  // Reports
+  reports: {
+    title: 'Performance Reports',
+    description: 'View quarterly performance metrics and monthly trends',
+    refresh: 'Refresh',
+    quarterly: {
+      title: 'Quarterly Performance',
+      quarter: 'Quarter',
+      totalOrders: 'Total Orders',
+      totalRevenue: 'Total Revenue',
+      avgOrderValue: 'Avg Order Value',
+      fulfillmentRate: 'Fulfillment Rate'
+    },
+    monthly: {
+      title: 'Monthly Revenue Trend'
+    },
+    analysis: {
+      title: 'Month-over-Month Analysis',
+      month: 'Month',
+      orders: 'Orders',
+      revenue: 'Revenue',
+      change: 'Change',
+      growthRate: 'Growth Rate'
+    },
+    summary: {
+      totalRevenue: 'Total Revenue (YTD)',
+      avgMonthly: 'Avg Monthly Revenue',
+      totalOrders: 'Total Orders (YTD)',
+      bestQuarter: 'Best Performing Quarter'
     }
   },
 
