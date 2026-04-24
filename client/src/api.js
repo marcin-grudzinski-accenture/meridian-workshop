@@ -54,6 +54,16 @@ export const api = {
     return response.data
   },
 
+  async getRestockRecommendations(filters = {}) {
+    const params = new URLSearchParams()
+    if (filters.warehouse && filters.warehouse !== 'all') params.append('warehouse', filters.warehouse)
+    if (filters.category && filters.category !== 'all') params.append('category', filters.category)
+    if (filters.budget) params.append('budget', filters.budget)
+
+    const response = await axios.get(`${API_BASE_URL}/restock?${params.toString()}`)
+    return response.data
+  },
+
   async getQuarterlyReports(filters = {}) {
     const params = new URLSearchParams()
     if (filters.warehouse && filters.warehouse !== 'all') params.append('warehouse', filters.warehouse)
